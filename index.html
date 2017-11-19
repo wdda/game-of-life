@@ -88,7 +88,9 @@
                 el: '#life',
                 data: {
                     canvasSize: 400,
-                    cellSize: 25,
+                    cellSize: 20,
+                    speed: 500,
+                    countCheckPrevSteps: 10,
                     canvasStyle: function () {
                         return {
                             width: this.canvasSize,
@@ -105,13 +107,11 @@
                     cellsLiveCount: 0,
                     stepsCount: 0,
                     rows: [],
-                    speed: 1000,
                     playStatus: false,
                     interval: 0,
                     timeOut: 0,
                     gameOver: false,
                     prevSteps: [],
-                    countCheckPrevSteps: 10,
                     mouseDown: 0
                 },
                 watch: {
@@ -161,6 +161,7 @@
                         });
 
                         this.gameOver = false;
+                        this.stepsCount = 0;
                     },
                     next: function () {
                         var nextStep = [];
@@ -221,6 +222,7 @@
                             }
 
                             this.rows = nextStep;
+                            life.stepsCount++;
                             return true;
                         }
 
@@ -239,10 +241,6 @@
                         return 0;
                     },
                     play: function () {
-                        if (this.gameOver) {
-                            this.stepsCount = 0;
-                        }
-
                         this.playStatus = true;
                         this.gameOver = false;
 
@@ -250,7 +248,6 @@
                         this.interval = setInterval(function () {
                             if (life.playStatus && !life.gameOver) {
                                 life.next();
-                                life.stepsCount++;
                             }
                         }, this.speed);
                     },
@@ -263,6 +260,7 @@
 
                         this.playStatus = false;
                         this.gameOver = false;
+                        this.stepsCount = 0;
                     },
                     testStep: function (oneStep, twoStep) {
                         var count = 0;
