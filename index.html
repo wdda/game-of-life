@@ -1,0 +1,347 @@
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <style>
+            body{
+                margin: 0;
+                padding: 0;
+                background: #00270b;
+                color: #ffffff;
+            }
+
+            #life{
+                margin: 20px;
+            }
+
+            .margin_bottom{
+                margin-bottom: 10px;
+            }
+
+            #canvas{
+                -moz-user-select: none;
+                -khtml-user-select: none;
+                -webkit-user-select: none;
+            }
+
+            #canvas div {
+                border-right: 1px solid #616161;
+                border-bottom: 1px solid #616161;
+                float: left;
+                box-sizing: border-box;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="life" class="margin_bottom">
+            <h1 v-if="gameOver">Game Over!</h1>
+            <div v-bind:style="canvasStyle()" id="canvas" class="margin_bottom">
+                <template v-for="row in rows">
+                    <div v-for="cell in row"
+                         v-bind:style="cellStyle(cell)"
+                         v-on:click="(cell.status)?cell.status = false:cell.status = true"
+                         v-on:mouseover="mouseHover(cell)"
+                    >
+                    </div>
+                </template>
+            </div>
+
+            <div class="margin_bottom">Steps: {{stepsCount}}</div>
+
+            <div class="margin_bottom">
+                <label>
+                    Speed:  <input v-model="speed" type="range" min="100" max="2000">
+                    {{speed}} ms
+                </label>
+            </div>
+
+            <div class="margin_bottom">
+                Size canvas:
+                <label><input v-model="canvasSize" type="radio" value="100"> 100</label>
+                <label><input v-model="canvasSize" type="radio" value="200"> 200</label>
+                <label><input v-model="canvasSize" type="radio" value="400"> 400</label>
+                <label><input v-model="canvasSize" type="radio" value="500"> 500</label>
+                <label><input v-model="canvasSize" type="radio" value="600"> 600</label>
+            </div>
+
+            <div class="margin_bottom">
+                Size cell:
+                <label><input v-model="cellSize" type="radio" value="10"> 10</label>
+                <label><input v-model="cellSize" type="radio" value="20"> 20</label>
+                <label><input v-model="cellSize" type="radio" value="25"> 25</label>
+            </div>
+
+            <div>
+                <button type="button" v-on:click="clear">Clear</button>
+                <button type="button" v-on:click="repopulate">Repopulate</button>
+                <button type="button" v-on:click="next">Next step</button>
+                <button type="button" v-on:click="play" v-bind:style="{backgroundColor: (playStatus)? 'green' : ''}">Play</button>
+                <button type="button"
+                        v-on:click="playStatus = false"
+                        v-bind:style="{backgroundColor: (playStatus)? '' : 'green'}">
+                    Stop
+                </button>
+            </div>
+        </div>
+
+        <script>
+            var life = new Vue({
+                el: '#life',
+                data: {
+                    canvasSize: 400,
+                    cellSize: 25,
+                    canvasStyle: function () {
+                        return {
+                            width: this.canvasSize,
+                            height: this.canvasSize,
+                        }
+                    },
+                    cellStyle: function (cell) {
+                        return {
+                            width: this.cellSize,
+                            height: this.cellSize,
+                            backgroundColor: cell.status ? '#28b728' : '#ffffff'
+                        }
+                    },
+                    cellsLiveCount: 0,
+                    stepsCount: 0,
+                    rows: [],
+                    speed: 1000,
+                    playStatus: false,
+                    interval: 0,
+                    timeOut: 0,
+                    gameOver: false,
+                    prevSteps: [],
+                    countCheckPrevSteps: 10,
+                },
+                watch: {
+                    canvasSize: function () {
+                        this.resize();
+                    },
+                    cellSize: function () {
+                        this.resize();
+                    },
+                    speed: function () {
+                        clearTimeout(this.timeOut);
+                        this.timeOut = setTimeout(function () {
+                            clearInterval(life.interval);
+                            if (life.playStatus) {
+                                life.play();
+                            }
+                        }, 300);
+                    }
+                },
+                methods: {
+                    getCells: function () {
+                        var rows = [];
+                        for (var i = 0; i < this.canvasSize / this.cellSize; i++) {
+                            var cells = [];
+
+                            for (var b = 0; b < this.canvasSize / this.cellSize; b++) {
+                                cells.push({
+                                    status: false
+                                });
+                            }
+
+                            rows.push(cells);
+                        }
+
+                        return rows;
+                    },
+                    repopulate: function () {
+                        this.rows.map(function (row) {
+                            return row.map(function (cell) {
+                                cell.status = Math.round(Math.random());
+                                if (cell.status) {
+                                    life.cellsLiveCount++;
+                                }
+
+                                return cell.status;
+                            });
+                        });
+
+                        this.gameOver = false;
+                    },
+                    next: function () {
+                        var nextStep = [];
+                        var rows = this.rows;
+                        this.cellsLiveCount = 0;
+
+                        this.rows.forEach(function (row, i) {
+                            nextStep[i] = [];
+                            row.forEach(function (cell, b) {
+                                var neighbors = 0;
+
+                                if (i) {
+                                    var topRow = rows[i - 1];
+                                    neighbors += life.cehckLiveNeighbor(topRow[b - 1]);
+                                    neighbors += life.cehckLiveNeighbor(topRow[b]);
+                                    neighbors += life.cehckLiveNeighbor(topRow[b + 1]);
+                                }
+
+                                neighbors += life.cehckLiveNeighbor(row[b - 1]);
+                                neighbors += life.cehckLiveNeighbor(row[b + 1]);
+
+                                if (i + 1 != life.canvasSize / life.cellSize) {
+                                    var bottomRow = rows[i + 1];
+                                    neighbors += life.cehckLiveNeighbor(bottomRow[b - 1]);
+                                    neighbors += life.cehckLiveNeighbor(bottomRow[b]);
+                                    neighbors += life.cehckLiveNeighbor(bottomRow[b + 1]);
+                                }
+
+                                var newCell = {status: cell.status};
+
+                                if (!cell.status) {
+                                    if (neighbors == 3) {
+                                        newCell.status = true;
+                                    }
+                                } else {
+                                    if (neighbors < 2 || neighbors > 3) {
+                                        newCell.status = false;
+                                    }
+                                }
+
+                                if (newCell.status) {
+                                    life.cellsLiveCount++;
+                                }
+
+                                nextStep[i][b] = newCell;
+                            });
+                        });
+
+
+                        if (this.testStep(this.rows, nextStep)
+                            && this.testSteps(nextStep)
+                            && this.cellsLiveCount) {
+
+                            this.prevSteps.push(JSON.parse(JSON.stringify(this.rows)));
+
+                            if (this.countCheckPrevSteps < this.prevSteps.length) {
+                                this.prevSteps.splice(0, 1)
+                            }
+
+                            this.rows = nextStep;
+                            return true;
+                        }
+
+                        this.rows = nextStep;
+                        this.gameOver = true;
+                        this.playStatus = false;
+                        return false;
+                    },
+                    cehckLiveNeighbor: function (neighbor) {
+                        if (neighbor !== undefined) {
+                            if (neighbor.status) {
+                                return 1;
+                            }
+                        }
+
+                        return 0;
+                    },
+                    play: function () {
+                        if (this.gameOver) {
+                            this.stepsCount = 0;
+                        }
+
+                        this.playStatus = true;
+                        this.gameOver = false;
+
+                        clearInterval(life.interval);
+                        this.interval = setInterval(function () {
+                            if (life.playStatus && !life.gameOver) {
+                                life.next();
+                                life.stepsCount++;
+                            }
+                        }, this.speed);
+                    },
+                    clear: function () {
+                        this.rows.map(function (row) {
+                            return row.map(function (cell) {
+                                cell.status = false;
+                            });
+                        });
+
+                        this.playStatus = false;
+                        this.gameOver = false;
+                    },
+                    testStep: function (oneStep, twoStep) {
+                        var count = 0;
+                        oneStep.forEach(function (row, i) {
+                            if (twoStep[i] == undefined || count) {
+                                count++;
+                                return;
+                            }
+
+                            return row.forEach(function (cell, b) {
+                                if (twoStep[i][b] == undefined) {
+                                    count++;
+                                    return;
+                                }
+
+                                if (twoStep[i][b].status != cell.status) {
+                                    count++;
+                                    return;
+                                }
+                            });
+                        });
+
+                        return count;
+                    },
+                    testSteps: function (nexStep) {
+                        var check = false;
+
+                        if (!this.prevSteps.length) {
+                            return true;
+                        }
+
+                        this.prevSteps.forEach(function (checkStep) {
+                            check = true;
+
+                            if (!life.testStep(nexStep, checkStep)) {
+                                check = false;
+                                return;
+                            }
+                        });
+
+                        return check;
+                    },
+                    resize: function () {
+                        var newRows = this.getCells();
+                        this.rows = newRows.map(function (row, i) {
+                            if (life.rows[i] != undefined) {
+                                return row.map(function (cell, b) {
+                                    if (life.rows[i][b] != undefined) {
+                                        return life.rows[i][b];
+                                    }
+
+                                    return cell;
+                                })
+                            }
+
+                            return row;
+                        });
+                    },
+                    mouseHover: function (cell) {
+                        if (mouseDown) {
+                            cell.status = true;
+                        }
+                    }
+                },
+                mounted: function () {
+                    this.rows = this.getCells();
+                    this.$nextTick(function () {
+                        life.repopulate();
+                        life.play();
+                    });
+                }
+            });
+
+            var mouseDown = 0;
+            document.body.onmousedown = function() {
+                ++mouseDown;
+            }
+            document.body.onmouseup = function() {
+                --mouseDown;
+            }
+        </script>
+    </body>
+</html>
