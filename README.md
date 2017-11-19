@@ -1,3 +1,3 @@
 # Example Game of life made in Vue.js
 
-http://wdda.pro/game-of-Life
+http://wdda.pro/game-of-life
