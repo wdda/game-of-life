@@ -112,6 +112,7 @@
                     gameOver: false,
                     prevSteps: [],
                     countCheckPrevSteps: 10,
+                    mouseDown: 0
                 },
                 watch: {
                     canvasSize: function () {
@@ -321,7 +322,7 @@
                         });
                     },
                     mouseHover: function (cell) {
-                        if (mouseDown) {
+                        if (this.mouseDown) {
                             cell.status = true;
                         }
                     }
@@ -329,19 +330,18 @@
                 mounted: function () {
                     this.rows = this.getCells();
                     this.$nextTick(function () {
+                        document.body.onmousedown = function() {
+                            life.mouseDown++;
+                        }
+                        document.body.onmouseup = function() {
+                            life.mouseDown--;
+                        }
+
                         life.repopulate();
                         life.play();
                     });
                 }
             });
-
-            var mouseDown = 0;
-            document.body.onmousedown = function() {
-                ++mouseDown;
-            }
-            document.body.onmouseup = function() {
-                --mouseDown;
-            }
         </script>
     </body>
 </html>
